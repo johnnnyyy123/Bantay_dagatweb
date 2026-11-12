@@ -1,6 +1,19 @@
 
 FROM php:8.2-apache
 
+# Configure PHP error handling
+RUN printf '%s\n' \
+    'display_errors=Off' \
+    'display_startup_errors=Off' \
+    'log_errors=On' \
+    'error_reporting=E_ALL' \
+    'output_buffering=4096' \
+    'session.auto_start=0' \
+    > /usr/local/etc/php/conf.d/bantay-dagat.ini
+
+# Verify PHP configuration
+RUN php --ini && php -i | grep -E \
+    'display_errors|display_startup_errors|log_errors|session.auto_start'
 # Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
@@ -18,17 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure PHP
-RUN printf '%s\n' \
-    'display_errors=Off' \
-    'display_startup_errors=Off' \
-    'log_errors=On' \
-    'error_reporting=E_ALL' \
-    'output_buffering=4096' \
-    'session.auto_start=0' \
-    > /usr/local/etc/php/conf.d/bantay-dagat.ini
-    RUN php --ini && php -i | grep -E \
-'display_errors|display_startup_errors|log_errors|session.auto_start'
+
 
 # Configure Apache ServerName
 RUN printf '%s\n' 'ServerName localhost' \
