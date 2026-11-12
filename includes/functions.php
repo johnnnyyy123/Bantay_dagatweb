@@ -1,18 +1,55 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../config/database.php';
+/*
+|--------------------------------------------------------------------------
+| SESSION INITIALIZATION
+|--------------------------------------------------------------------------
+*/
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    @ini_set('session.use_strict_mode', '1');
-    @ini_set('session.use_only_cookies', '1');
+// Start the session before loading database or other application files.
+if (session_status() === PHP_SESSION_NONE) {
+
+    // Configure session only before it starts.
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+
+    $isHttps =
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
     session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
         'httponly' => true,
         'samesite' => 'Lax',
-        'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'secure' => $isHttps,
     ]);
-    session_start();
+
+    if (!headers_sent($file, $line)) {
+        session_start();
+    } else {
+        error_log(
+            "Bantay-Dagat session could not start. Output already sent in {$file} at line {$line}."
+        );
+    }
 }
+
+/*
+|--------------------------------------------------------------------------
+| DATABASE CONNECTION
+|--------------------------------------------------------------------------
+*/
+
+require_once __DIR__ . '/../config/database.php';
+
+/*
+|--------------------------------------------------------------------------
+| HELPER FUNCTIONS
+|--------------------------------------------------------------------------
+*/
+
+// KEEP ALL YOUR EXISTING FUNCTIONS BELOW THIS LINE.
 
 function e(mixed $value): string
 {
