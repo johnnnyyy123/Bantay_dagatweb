@@ -4,11 +4,21 @@ declare(strict_types=1);
 
 /*
 |--------------------------------------------------------------------------
+| ERROR DISPLAY SETTINGS
+|--------------------------------------------------------------------------
+*/
+
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
+
+/*
+|--------------------------------------------------------------------------
 | OUTPUT BUFFERING
 |--------------------------------------------------------------------------
 */
 
-if (!ob_get_level()) {
+if (!ob_get_level() && !headers_sent()) {
     ob_start();
 }
 
@@ -18,17 +28,17 @@ if (!ob_get_level()) {
 |--------------------------------------------------------------------------
 */
 
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
 
-    ini_set('session.use_strict_mode', '1');
-    ini_set('session.use_only_cookies', '1');
+    @ini_set('session.use_strict_mode', '1');
+    @ini_set('session.use_only_cookies', '1');
 
     $isSecure = (
         isset($_SERVER['HTTPS']) &&
         $_SERVER['HTTPS'] !== 'off'
     );
 
-    session_set_cookie_params([
+    @session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
         'httponly' => true,
@@ -36,7 +46,7 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax',
     ]);
 
-    session_start();
+    @session_start();
 }
 
 /*
@@ -47,11 +57,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../config/database.php';
 
-/*
-|--------------------------------------------------------------------------
-| HTML ESCAPING
-|--------------------------------------------------------------------------
-*/
 
 function e(mixed $value): string
 {
