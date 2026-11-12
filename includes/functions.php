@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
 |--------------------------------------------------------------------------
-| ERROR DISPLAY SETTINGS
+| PHP ERROR SETTINGS (LOCALHOST)
 |--------------------------------------------------------------------------
 */
 
@@ -30,23 +30,22 @@ if (!ob_get_level()) {
 
 if (session_status() === PHP_SESSION_NONE) {
 
-    @ini_set('session.use_strict_mode', '1');
-    @ini_set('session.use_only_cookies', '1');
-
     $isSecure = (
         isset($_SERVER['HTTPS']) &&
         $_SERVER['HTTPS'] !== 'off'
     );
 
-    @session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'httponly' => true,
-        'secure' => $isSecure,
-        'samesite' => 'Lax',
-    ]);
+    if (!headers_sent()) {
+        @session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'httponly' => true,
+            'secure' => $isSecure,
+            'samesite' => 'Lax',
+        ]);
 
-    @session_start();
+        @session_start();
+    }
 }
 
 /*
