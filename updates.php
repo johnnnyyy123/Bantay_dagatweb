@@ -1,10 +1,16 @@
 
 <?php
+declare(strict_types=1);
+
+// Load existing functions and database connection.
+// Session initialization is handled by functions.php.
 require_once __DIR__ . '/includes/functions.php';
 
+// Get search and category filters.
 $search = trim((string) ($_GET['q'] ?? ''));
 $category = trim((string) ($_GET['category'] ?? ''));
 
+// Available announcement categories.
 $categories = [
     'Bantay Dagat Activities',
     'Coastal Clean-Up Drives',
@@ -15,137 +21,144 @@ $categories = [
     'Emergency Advisories'
 ];
 
+// Retrieve published announcements.
 $sql = "SELECT announcement_id, title, category, description,
-        featured_image, created_at
+               featured_image, created_at
         FROM announcements
         WHERE publication_status = 'Published'";
 
 $params = [];
 
 if ($search !== '') {
-    $sql .= ' AND (title LIKE ? OR description LIKE ?)';
+    $sql .= " AND (title LIKE ? OR description LIKE ?)";
     $params[] = '%' . $search . '%';
     $params[] = '%' . $search . '%';
 }
 
 if (in_array($category, $categories, true)) {
-    $sql .= ' AND category = ?';
+    $sql .= " AND category = ?";
     $params[] = $category;
 }
 
-$sql .= ' ORDER BY created_at DESC';
+$sql .= " ORDER BY created_at DESC";
 
 $statement = db()->prepare($sql);
 $statement->execute($params);
 $items = $statement->fetchAll();
 
+// Page information.
 $pageTitle = 'Latest Updates';
 $activePage = 'updates';
 
+// Load the existing header.
 require __DIR__ . '/includes/header.php';
 ?>
 
-<section class="page-hero">
-    <div class="container">
-        <span class="eyebrow eyebrow-light">NEWS FROM OUR COAST</span>
-        <h1>Latest updates</h1>
-        <p>Announcements, community activities, and conservation programs from Bantay Dagat Marinduque.</p>
-    </div>
-</section>
-
-<section class="content-section">
+<section class="page-section">
     <div class="container">
 
-        <form class="surface-card mb-4" method="get">
-            <div class="row g-3 align-items-end">
+        <div class="section-heading">
+            <span class="section-eyebrow">BANTAY-DAGAT MARINDUQUE</span>
+            <h1>Latest Updates</h1>
+            <p>
+                Stay informed about coastal activities, marine conservation
+                programs, announcements, and important advisories.
+            </p>
+        </div>
 
-                <div class="col-md-6">
-                    <label class="form-label">Search updates</label>
-                    <input class="form-control"
-                           name="q"
-                           value="<?= e($search) ?>"
-                           placeholder="Search title or description">
-                </div>
+        <!-- Search and Category Filter -->
+        <form method="GET" action="updates.php" class="updates-filter">
 
-                <div class="col-md-4">
-                    <label class="form-label">Category</label>
-                    <select class="form-select" name="category">
-                        <option value="">All categories</option>
+            <div class="search-group">
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="Search announcements..."
+                    value="<?= e($search) ?>"
+                >
 
-                        <?php foreach ($categories as $cat): ?>
-                            <option value="<?= e($cat) ?>"
-                                <?= $category === $cat ? 'selected' : '' ?>>
-                                <?= e($cat) ?>
-                            </option>
-                        <?php endforeach; ?>
-
-                    </select>
-                </div>
-
-                <div class="col-md-2 d-grid">
-                    <button class="btn btn-primary rounded-pill">
-                        Search
-                    </button>
-                </div>
-
+                <button type="submit">
+                    Search
+                </button>
             </div>
+
+            <div class="category-group">
+                <select name="category" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+
+                    <?php foreach ($categories as $cat): ?>
+                        <option
+                            value="<?= e($cat) ?>"
+                            <?= $category === $cat ? 'selected' : '' ?>
+                        >
+                            <?= e($cat) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
         </form>
 
-        <?php if ($items): ?>
+        <!-- Announcements -->
+        <div class="updates-grid">
 
-            <div class="row g-4">
+            <?php if (!empty($items)): ?>
 
-                <?php foreach ($items as $index => $item): ?>
+                <?php foreach ($items as $item): ?>
 
-                    <div class="col-md-6 col-lg-4">
+                    <article class="update-card">
 
-                        <article class="update-card">
+                        <?php if (!empty($item['featured_image'])): ?>
+                            <div class="update-image">
+                                <img
+                                    src="<?= e($item['featured_image']) ?>"
+                                    alt="<?= e($item['title']) ?>"
+                                    loading="lazy"
+                                >
+                            </div>
+                        <?php endif; ?>
 
-                            <div class="update-image update-image-<?= $index % 3 + 1 ?>"
-                                <?php if ($item['featured_image']): ?>
-                                    style="background-image:linear-gradient(0deg,rgba(4,44,68,.15),rgba(4,44,68,.08)),url('<?= e($item['featured_image']) ?>')"
-                                <?php endif; ?>>
+                        <div class="update-content">
 
-                                <span><?= e($item['category']) ?></span>
+                            <span class="update-category">
+                                <?= e($item['category']) ?>
+                            </span>
 
+                            <h2>
+                                <?= e($item['title']) ?>
+                            </h2>
+
+                            <p>
+                                <?= nl2br(e($item['description'])) ?>
+                            </p>
+
+                            <div class="update-date">
+                                <span>Published:</span>
+                                <?= e(date(
+                                    'F d, Y',
+                                    strtotime((string) $item['created_at'])
+                                )) ?>
                             </div>
 
-                            <div class="update-body">
+                        </div>
 
-                                <small>
-                                    <i class="fa-regular fa-calendar me-1"></i>
-                                    <?= e(date('M j, Y', strtotime($item['created_at']))) ?>
-                                </small>
-
-                                <h3><?= e($item['title']) ?></h3>
-
-                                <p>
-                                    <?= e(mb_strimwidth(strip_tags($item['description']), 0, 130, '…')) ?>
-                                </p>
-
-                                <a class="text-link"
-                                   href="announcement-details.php?id=<?= (int) $item['announcement_id'] ?>">
-                                    Read more
-                                    <i class="fa-solid fa-arrow-right"></i>
-                                </a>
-
-                            </div>
-
-                        </article>
-
-                    </div>
+                    </article>
 
                 <?php endforeach; ?>
 
-            </div>
+            <?php else: ?>
 
-        <?php else: ?>
+                <div class="no-updates">
+                    <h3>No announcements found.</h3>
+                    <p>
+                        There are currently no published announcements
+                        matching your search.
+                    </p>
+                </div>
 
-            <div class="empty-note">
-                No published updates match your search yet.
-            </div>
+            <?php endif; ?>
 
-        <?php endif; ?>
+        </div>
 
     </div>
 </section>
