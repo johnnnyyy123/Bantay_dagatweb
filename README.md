@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Bantay-Dagat Marinduque
 
 A community coastal monitoring application for XAMPP, built with PHP, MySQL/PDO, Bootstrap, Leaflet, and OpenStreetMap.
@@ -46,3 +47,6 @@ The seeded account is for local development only. Replace it before exposing an 
 - To test the Inbox workflow, submit a report while signed in, review it in Admin > Report Inbox, generate a Reference ID, and send a message. The user can open it in Inbox, copy the ID, and track the report. Guest report submission remains available, but a guest has no private Inbox.
 - To test user authentication, register with a new email and username, sign in with either identifier, update the profile, then sign out. In Admin, set a test user's status to Inactive or Suspended and verify that sign-in is denied; restore Active afterward. Admin login remains at `admin/login.php`.
 - This project is a local starter and should receive deployment-specific review before public hosting (HTTPS, strong unique credentials, backups, SMTP/contact workflow, and server upload limits).
+=======
+# Bantay_dagatweb
+>>>>>>> cad38fd1c603f4c9b1bf3aa58adf88bf0e6aa2ae
