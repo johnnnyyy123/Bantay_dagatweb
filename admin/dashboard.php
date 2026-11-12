@@ -1,0 +1,27 @@
+<?php
+require_once __DIR__ . '/_layout.php';
+$pdo = db();
+$counts = $pdo->query("SELECT COUNT(*) total, SUM(status='Pending') pending, SUM(status='Under Review') review_count, SUM(status='In Progress') progress_count, SUM(status='Resolved') resolved, SUM(status='Rejected') rejected FROM reports")->fetch();
+$users = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+$pendingInboxCount = (int) $pdo->query("SELECT COUNT(*) FROM reports WHERE status='Pending' AND reference_sent_at IS NULL")->fetchColumn();
+$recent = $pdo->query('SELECT report_id AS id, reference_number, report_title, category, barangay, status, created_at FROM reports ORDER BY created_at DESC LIMIT 8')->fetchAll();
+$byCategory = $pdo->query('SELECT category label, COUNT(*) total FROM reports GROUP BY category ORDER BY total DESC')->fetchAll();
+$byStatus = $pdo->query('SELECT status label, COUNT(*) total FROM reports GROUP BY status ORDER BY total DESC')->fetchAll();
+$monthly = $pdo->query("SELECT DATE_FORMAT(created_at, '%Y-%m') month_key, COUNT(*) total FROM reports WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH) GROUP BY month_key ORDER BY month_key")->fetchAll();
+admin_header('Dashboard');
+?>
+<div class="admin-stat-grid mb-4">
+<?php foreach ([['Total reports','total','fa-file-lines'],['Pending','pending','fa-hourglass-half'],['Under review','review_count','fa-magnifying-glass'],['In progress','progress_count','fa-person-walking'],['Resolved','resolved','fa-circle-check'],['Rejected','rejected','fa-circle-xmark'],['Registered users',null,'fa-users']] as [$label,$key,$icon]): ?>
+<div class="admin-stat"><i class="fa-solid <?= e($icon) ?>"></i><span><?= e($label) ?></span><strong><?= number_format((int) ($key === null ? $users : $counts[$key])) ?></strong></div>
+<?php endforeach; ?></div>
+<section class="surface-card mb-4 d-flex justify-content-between align-items-center gap-3 flex-wrap"><div><span class="eyebrow">REPORT FOLLOW-UP</span><h2 class="h6 fw-bold mb-1">Report Inbox</h2><p class="small text-secondary mb-0"><?= number_format($pendingInboxCount) ?> pending report<?= $pendingInboxCount === 1 ? '' : 's' ?> awaiting review and Reference ID follow-up.</p></div><a class="btn btn-primary rounded-pill" href="manage-reports.php">Open Report Inbox <span class="badge rounded-pill text-bg-light text-primary ms-1"><?= $pendingInboxCount ?></span></a></section>
+<div class="row g-3 mb-4"><div class="col-lg-6"><section class="surface-card"><h2 class="h6 fw-bold">Reports by category</h2><canvas id="category-chart" height="180"></canvas></section></div><div class="col-lg-6"><section class="surface-card"><h2 class="h6 fw-bold">Reports by status</h2><canvas id="status-chart" height="180"></canvas></section></div><div class="col-12"><section class="surface-card"><h2 class="h6 fw-bold">Monthly reports</h2><canvas id="monthly-chart" height="100"></canvas></section></div></div>
+<section class="surface-card"><div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h6 fw-bold mb-0">Recent incident reports</h2><a class="text-link" href="manage-reports.php">Open Report Inbox <i class="fa-solid fa-arrow-right"></i></a></div><div class="admin-table-wrap"><table class="table table-hover align-middle"><thead><tr><th>Reference</th><th>Title</th><th>Category</th><th>Area</th><th>Status</th><th>Received</th></tr></thead><tbody><?php foreach ($recent as $item): ?><tr><td><a href="manage-reports.php?id=<?= (int) $item['id'] ?>"><?= e($item['reference_number'] ?: 'Not assigned') ?></a></td><td><?= e($item['report_title']) ?></td><td><?= e($item['category']) ?></td><td><?= e($item['barangay']) ?></td><td><span class="status-pill <?= e(status_class($item['status'])) ?>"><?= e($item['status']) ?></span></td><td><?= e(date('M j', strtotime($item['created_at']))) ?></td></tr><?php endforeach; ?><?php if (!$recent): ?><tr><td colspan="6" class="text-secondary">No reports have been submitted yet.</td></tr><?php endif; ?></tbody></table></div></section>
+<?php admin_footer(); ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script>
+const categoryData=<?= json_encode($byCategory, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>,statusData=<?= json_encode($byStatus, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>,monthRows=<?= json_encode($monthly, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;
+const colors=['#087db5','#28b7c8','#35a27c','#e4a941','#da6f64','#7d88c8','#69b6a4','#758c9d'];
+new Chart(document.getElementById('category-chart'),{type:'bar',data:{labels:categoryData.map(x=>x.label),datasets:[{data:categoryData.map(x=>Number(x.total)),backgroundColor:colors,borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+new Chart(document.getElementById('status-chart'),{type:'doughnut',data:{labels:statusData.map(x=>x.label),datasets:[{data:statusData.map(x=>Number(x.total)),backgroundColor:colors}]},options:{plugins:{legend:{position:'bottom'}}}});
+const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7))}const monthMap=Object.fromEntries(monthRows.map(x=>[x.month_key,Number(x.total)]));new Chart(document.getElementById('monthly-chart'),{type:'line',data:{labels:months,datasets:[{label:'Reports',data:months.map(m=>monthMap[m]||0),borderColor:'#087db5',backgroundColor:'rgba(8,125,181,.12)',fill:true,tension:.3}]},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+</script>

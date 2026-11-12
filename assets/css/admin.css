@@ -1,0 +1,4 @@
+.admin-sidebar .sidebar-logout{margin:0}
+.admin-sidebar button.sidebar-link{color:#bfd3dd;display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;font-size:12px;line-height:1.5}
+.admin-sidebar button.sidebar-link:hover{background:rgba(40,221,229,.15);color:#fff}
+@media(max-width:767px){.admin-sidebar .sidebar-logout{flex:0 0 auto}.admin-sidebar button.sidebar-link{white-space:nowrap;margin:0;padding:9px;font-size:10px;width:auto!important}}
