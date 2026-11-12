@@ -1,24 +1,27 @@
 
 FROM php:8.2-apache
 
-# Install required system dependencies
+# Install PHP extensions and dependencies
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql mysqli gd \
-    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache rewrite module
-RUN a2enmod rewrite
+# Remove every enabled Apache MPM configuration
+RUN find /etc/apache2/mods-enabled -maxdepth 1 \
+    \( -name 'mpm_*.load' -o -name 'mpm_*.conf' \) \
+    -delete \
+    && a2enmod mpm_prefork \
+    && a2enmod rewrite
 
-# Set Apache MPM to prefork only
-RUN a2dismod mpm_event mpm_worker || true \
-    && a2enmod mpm_prefork
+# Verify that exactly one MPM is enabled
+RUN apache2ctl -M | grep mpm_ \
+    && test "$(apache2ctl -M | grep -c mpm_)" -eq 1
 
-# Set project directory
+# Project directory
 WORKDIR /var/www/html
 
 # Copy project files
