@@ -4,38 +4,44 @@ declare(strict_types=1);
 
 /*
 |--------------------------------------------------------------------------
+| OUTPUT BUFFERING
+|--------------------------------------------------------------------------
+*/
+
+if (!ob_get_level()) {
+    ob_start();
+}
+
+/*
+|--------------------------------------------------------------------------
 | SESSION INITIALIZATION
 |--------------------------------------------------------------------------
 */
 
 if (session_status() === PHP_SESSION_NONE) {
 
-    if (headers_sent($file, $line)) {
-        error_log("Session initialization failed: Output started in {$file} on line {$line}.");
-    } else {
-        ini_set('session.use_strict_mode', '1');
-        ini_set('session.use_only_cookies', '1');
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
 
-        $isSecure = (
-            isset($_SERVER['HTTPS']) &&
-            $_SERVER['HTTPS'] !== 'off'
-        );
+    $isSecure = (
+        isset($_SERVER['HTTPS']) &&
+        $_SERVER['HTTPS'] !== 'off'
+    );
 
-        session_set_cookie_params([
-            'lifetime' => 0,
-            'path' => '/',
-            'httponly' => true,
-            'secure' => $isSecure,
-            'samesite' => 'Lax',
-        ]);
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'httponly' => true,
+        'secure' => $isSecure,
+        'samesite' => 'Lax',
+    ]);
 
-        session_start();
-    }
+    session_start();
 }
 
 /*
 |--------------------------------------------------------------------------
-| DATABASE CONFIGURATION
+| DATABASE
 |--------------------------------------------------------------------------
 */
 
@@ -207,7 +213,7 @@ function user_unread_message_count(int $userId): int
 
 /*
 |--------------------------------------------------------------------------
-| REQUIRE USER LOGIN
+| REQUIRE USER
 |--------------------------------------------------------------------------
 */
 
@@ -279,18 +285,14 @@ function app_root_url(): string
 
 /*
 |--------------------------------------------------------------------------
-| REQUIRE ADMIN LOGIN
+| REQUIRE ADMIN
 |--------------------------------------------------------------------------
 */
 
 function require_admin(): void
 {
     if (!is_admin()) {
-        flash(
-            'error',
-            'Please sign in to access the admin dashboard.'
-        );
-
+        flash('error', 'Please sign in to access the admin dashboard.');
         redirect(app_root_url() . '/admin/login.php');
     }
 }
@@ -372,7 +374,7 @@ function upload_image(string $field, string $folder): ?string
 
 /*
 |--------------------------------------------------------------------------
-| ONLINE MARINE SPECIES IMAGE LOOKUP
+| MARINE SPECIES IMAGE LOOKUP
 |--------------------------------------------------------------------------
 */
 
@@ -385,19 +387,8 @@ function find_species_image_online(
         return null;
     }
 
-    if (!function_exists('curl_init')) {
-        error_log(
-            'Marine species image lookup requires the PHP cURL extension.'
-        );
-
-        return null;
-    }
-
-    if (!function_exists('mb_strtolower')) {
-        error_log(
-            'Marine species image lookup requires the PHP mbstring extension.'
-        );
-
+    if (!function_exists('curl_init') || !function_exists('mb_strtolower')) {
+        error_log('Marine species image lookup requires cURL and mbstring.');
         return null;
     }
 
@@ -426,11 +417,11 @@ function find_species_image_online(
             $GLOBALS['commons_image_lookup_last_request'] ?? 0
         );
 
-        $waitMicroseconds = 5000000 -
+        $wait = 5000000 -
             (int) ((microtime(true) - $lastRequest) * 1000000);
 
-        if ($waitMicroseconds > 0) {
-            usleep($waitMicroseconds);
+        if ($wait > 0) {
+            usleep($wait);
         }
 
         $GLOBALS['commons_image_lookup_last_request'] = microtime(true);
@@ -451,11 +442,7 @@ function find_species_image_online(
         $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
         if ($response === false) {
-            error_log(
-                'Wikimedia Commons image lookup failed: ' .
-                curl_error($curl)
-            );
-
+            error_log('Wikimedia lookup failed: ' . curl_error($curl));
             curl_close($curl);
             continue;
         }
@@ -464,35 +451,17 @@ function find_species_image_online(
 
         if ($status === 429) {
             $GLOBALS['commons_image_lookup_rate_limited'] = true;
-
-            error_log(
-                'Wikimedia Commons image lookup was rate-limited.'
-            );
-
             return null;
         }
 
         if ($status !== 200) {
-            error_log(
-                'Wikimedia Commons image lookup returned HTTP ' . $status
-            );
-
             continue;
         }
 
         try {
-            $data = json_decode(
-                $response,
-                true,
-                512,
-                JSON_THROW_ON_ERROR
-            );
+            $data = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
-            error_log(
-                'Wikimedia Commons returned invalid JSON: ' .
-                $exception->getMessage()
-            );
-
+            error_log('Invalid Wikimedia JSON: ' . $exception->getMessage());
             continue;
         }
 
@@ -535,9 +504,8 @@ function find_species_image_online(
                     rawurlencode((string) $filename) . '?width=960';
             }
 
-            $urlParts = parse_url($imageUrl);
-
-            $host = strtolower((string) ($urlParts['host'] ?? ''));
+            $parts = parse_url($imageUrl);
+            $host = strtolower((string) ($parts['host'] ?? ''));
 
             if (
                 $license === '' ||
@@ -545,20 +513,16 @@ function find_species_image_online(
                     strtolower((string) ($imageInfo['mime'] ?? '')),
                     'image/'
                 ) ||
-                ($urlParts['scheme'] ?? '') !== 'https' ||
-                !in_array(
-                    $host,
-                    [
-                        'thumb.wikimedia.org',
-                        'upload.wikimedia.org',
-                        'commons.wikimedia.org'
-                    ],
-                    true
-                ) ||
+                ($parts['scheme'] ?? '') !== 'https' ||
+                !in_array($host, [
+                    'thumb.wikimedia.org',
+                    'upload.wikimedia.org',
+                    'commons.wikimedia.org'
+                ], true) ||
                 (
                     $host === 'commons.wikimedia.org' &&
                     !str_starts_with(
-                        (string) ($urlParts['path'] ?? ''),
+                        (string) ($parts['path'] ?? ''),
                         '/wiki/Special:FilePath/'
                     )
                 ) ||
@@ -578,32 +542,32 @@ function find_species_image_online(
             $titleLower = mb_strtolower($title, 'UTF-8');
             $descriptionLower = mb_strtolower($description, 'UTF-8');
 
-            $commonInTitle = $common !== '' &&
+            $commonTitle = $common !== '' &&
                 str_contains($titleLower, $common);
 
-            $scientificInTitle = $scientific !== '' &&
+            $scientificTitle = $scientific !== '' &&
                 str_contains($titleLower, $scientific);
 
-            $commonInDescription = $common !== '' &&
+            $commonDescription = $common !== '' &&
                 str_contains($descriptionLower, $common);
 
-            $scientificInDescription = $scientific !== '' &&
+            $scientificDescription = $scientific !== '' &&
                 str_contains($descriptionLower, $scientific);
 
             if (
-                !$commonInTitle &&
-                !$scientificInTitle &&
-                !$commonInDescription &&
-                !$scientificInDescription
+                !$commonTitle &&
+                !$scientificTitle &&
+                !$commonDescription &&
+                !$scientificDescription
             ) {
                 continue;
             }
 
             $score =
-                ($scientificInTitle ? 10 : 0) +
-                ($commonInTitle ? 8 : 0) +
-                ($scientificInDescription ? 5 : 0) +
-                ($commonInDescription ? 3 : 0);
+                ($scientificTitle ? 10 : 0) +
+                ($commonTitle ? 8 : 0) +
+                ($scientificDescription ? 5 : 0) +
+                ($commonDescription ? 3 : 0);
 
             if ($score > $bestScore) {
                 $bestScore = $score;
@@ -632,7 +596,6 @@ function species_image_source_url(?string $imageUrl): ?string
     }
 
     $parts = parse_url($imageUrl);
-
     $host = strtolower((string) ($parts['host'] ?? ''));
 
     if (
@@ -657,11 +620,10 @@ function species_image_source_url(?string $imageUrl): ?string
         return null;
     }
 
-    if (!in_array(
-        $host,
-        ['thumb.wikimedia.org', 'upload.wikimedia.org'],
-        true
-    )) {
+    if (!in_array($host, [
+        'thumb.wikimedia.org',
+        'upload.wikimedia.org'
+    ], true)) {
         return filter_var($imageUrl, FILTER_VALIDATE_URL)
             ? $imageUrl
             : null;
