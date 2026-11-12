@@ -1,5 +1,10 @@
-
 <?php
+// Hide PHP warnings and errors from website visitors
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+error_reporting(0);
+
+// Continue with your existing code below
 declare(strict_types=1);
 
 // Load existing functions and database connection.
