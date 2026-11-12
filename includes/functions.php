@@ -49,8 +49,6 @@ require_once __DIR__ . '/../config/database.php';
 |--------------------------------------------------------------------------
 */
 
-// KEEP ALL YOUR EXISTING FUNCTIONS BELOW THIS LINE.
-
 function e(mixed $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
