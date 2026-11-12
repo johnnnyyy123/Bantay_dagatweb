@@ -27,6 +27,8 @@ RUN printf '%s\n' \
     'output_buffering=4096' \
     'session.auto_start=0' \
     > /usr/local/etc/php/conf.d/bantay-dagat.ini
+    RUN php --ini && php -i | grep -E \
+'display_errors|display_startup_errors|log_errors|session.auto_start'
 
 # Configure Apache ServerName
 RUN printf '%s\n' 'ServerName localhost' \
