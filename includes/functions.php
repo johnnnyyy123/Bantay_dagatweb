@@ -1,5 +1,10 @@
 <?php
-
+if (headers_sent($sourceFile, $sourceLine)) {
+    error_log(
+        "BANTAY-DAGAT SESSION DEBUG: Output started in "
+        . $sourceFile . " at line " . $sourceLine
+    );
+}
 /*
 |--------------------------------------------------------------------------
 | SESSION INITIALIZATION
