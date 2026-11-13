@@ -1,4 +1,4 @@
 Options -Indexes
-<FilesMatch "^(database\.sql|\.env)$">
+<FilesMatch "^(database\.sql|\.env|\.user\.ini)$">
     Require all denied
 </FilesMatch>
