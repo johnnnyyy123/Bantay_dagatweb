@@ -1,4 +1,4 @@
 Options -Indexes
-<FilesMatch "^(database\.sql|\.env|\.user\.ini)$">
+<FilesMatch "^(database\.sql|\.env|\.user\.ini|docker-entrypoint\.sh)$">
     Require all denied
 </FilesMatch>

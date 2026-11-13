@@ -1,10 +1,4 @@
 <?php
-if (headers_sent($sourceFile, $sourceLine)) {
-    error_log(
-        "BANTAY-DAGAT SESSION DEBUG: Output started in "
-        . $sourceFile . " at line " . $sourceLine
-    );
-}
 /*
 |--------------------------------------------------------------------------
 | SESSION INITIALIZATION
@@ -27,9 +21,12 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
 
-    $isHttps =
-        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+    $forwardedProto = strtolower(trim(explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+    $railwayPublicDomain = (string) (getenv('RAILWAY_PUBLIC_DOMAIN') ?: '');
+    $isHttps = ($https !== '' && $https !== 'off')
+        || $forwardedProto === 'https'
+        || $railwayPublicDomain !== '';
 
     session_set_cookie_params([
         'lifetime' => 0,
