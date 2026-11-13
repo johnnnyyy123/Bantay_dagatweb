@@ -6,6 +6,7 @@ RUN printf '%s\n' \
     'log_errors=On' \
     'error_log=/proc/self/fd/2' \
     'error_reporting=E_ALL' \
+    'output_buffering=4096' \
     'session.auto_start=0' \
     > /usr/local/etc/php/conf.d/bantay-dagat.ini
 
